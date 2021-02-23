@@ -1,4 +1,6 @@
 using Random
+using Plots
+pyplot()
 
 # array of valid characters for password
 characters = [ 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z', '0','1','2','3','4','5','6','7','8','9','~', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', '=', '-', '`']
@@ -41,4 +43,14 @@ for i in cumulative_prob
         break
     end
 end
-println(index)     # output: 3  i.e. atleast 3 characters match
+println("New rule is that, a password is stored in databse if atleast ",index," positional characters match with the correct password.")     # output: 3  i.e. atleast 3 characters match
+
+# Plot of probability of atleast 'x' characters matching ranging from 2 to 5 characters
+function prob_plot(cumulative_prob)
+    plot(2:5,cumulative_prob[3:6],legend=false)
+    plot!(2:5,[0.001 for _ in 2:5],linestyle=:dash)
+    ylabel!("probability that atleast 'x' characters match")
+    xlabel!("'x' characters")
+end
+
+prob_plot(cumulative_prob)
