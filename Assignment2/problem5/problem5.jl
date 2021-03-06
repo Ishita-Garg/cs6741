@@ -1,7 +1,6 @@
 using HTTP
 using JSON
 using DataFrames
-using Dates
 using Plots
 pyplot()
 
@@ -16,78 +15,36 @@ function create_df()
     return df
 end
 
-function get_year(var)
-    return [Dates.year(var[i]) for i in 1:length(var)]
-end
-function get_month(var)
-    return [Dates.month(var[i]) for i in 1:length(var)]
-end
-
-# fucntion for getting date from corresponding year and month
-function get_date(y,m)
-	return [Date(Dates.Year(y[i]),Dates.Month(m[i])) for i in 1:length(y)]
-end
-
 # function for caculating moving average
-function moving_average(array,n)
-	return [sum(@view array[i:(i+n-1)])/n for i in 1:(length(array)-(n-1))]
+function moving_average(array)
+	return [sum( array[i:(i+6)])/7 for i in 1:(length(array)-(6))]
 end
 
-
-function confirmed_cases_plot(aggregated_data,mov_avg_cnfrmd)
-    scatter(aggregated_data.date,aggregated_data.totalconfirmed_sum, label="")
-	scatter!(aggregated_data.date[7:end],mov_avg_cnfrmd, label="")
-	plot!(aggregated_data.date,aggregated_data.totalconfirmed_sum, label="actual values", title = "Confirmed cases plot")
-	plot!(aggregated_data.date[7:end],mov_avg_cnfrmd, label="moving average")
-	xlabel!("Dates")
+function plots_(data1,data2,label1,label2,title_)
+	plot(data1,label=label1,title = title_)
+	plot!(data2,label = label2,linewidth=2)	
 end
 
-function deceased_cases_plot(aggregated_data,mov_avg_deceased)
-    scatter(aggregated_data.date,aggregated_data.totaldeceased_sum, label="")
-	scatter!(aggregated_data.date[7:end],mov_avg_deceased, label="")
-	plot!(aggregated_data.date,aggregated_data.totaldeceased_sum, label="actual values", title = "Deceased cases plot")
-	plot!(aggregated_data.date[7:end],mov_avg_deceased, label="moving average")
-	xlabel!("Dates")
-end
-
-function recovered_cases_plot(aggregated_data,mov_avg_recovd)
-    scatter(aggregated_data.date,aggregated_data.totalrecovered_sum, label="")
-	scatter!(aggregated_data.date[7:end],mov_avg_recovd, label="")
-	plot!(aggregated_data.date,aggregated_data.totalrecovered_sum, label="actual values", title = "Recovered cases plot")
-	plot!(aggregated_data.date[7:end],mov_avg_recovd, label="moving average")
-	xlabel!("Dates")
+function get_year_month(var)
+    return [(var[i][1:7]) for i in 1:length(var)]
 end
 
 df = create_df()       
 
-# changing datatype from string to int/date as suitable
-select!(df, Not([:date]))
-df.dateymd = Date.(df.dateymd, "yyyy-mm-dd")
+# changing datatype from string to int
 df.dailyconfirmed = [parse(Int, x) for x in df.dailyconfirmed]
 df.dailydeceased = [parse(Int, x) for x in df.dailydeceased]
 df.dailyrecovered = [parse(Int, x) for x in df.dailyrecovered]
-df.totalconfirmed = [parse(Int, x) for x in df.totalconfirmed]
-df.totaldeceased = [parse(Int, x) for x in df.totaldeceased]
-df.totalrecovered = [parse(Int, x) for x in df.totalrecovered]
-select!(df, :dateymd , :dailyconfirmed, :dailydeceased,  :dailyrecovered, :totalconfirmed, :totaldeceased , :totalrecovered)
 
-# getting year and month from dates
-df.year = get_year(df.dateymd)
-df.month = get_month(df.dateymd)
-
-# grouping and caculating aggregate
-gdf = DataFrames.groupby(df, [:month,:year])
-aggregated_data = combine(gdf, :totalconfirmed => sum, :totaldeceased => sum, :totalrecovered => sum)
-
-# combining month and year to a date
-select!(aggregated_data, [:year,:month] => ((y,m) -> get_date(y,m)) => :date, :totalconfirmed_sum, :totaldeceased_sum, :totalrecovered_sum)
+# selecting required columns
+select!(df, :dateymd , :dailyconfirmed, :dailydeceased,  :dailyrecovered)
 
 # caculating moving average of 7 preceeding days for all three classes
-mov_avg_cnfrmd = moving_average(aggregated_data.totalconfirmed_sum,7)
-mov_avg_deceased = moving_average(aggregated_data.totaldeceased_sum,7)
-mov_avg_recovd = moving_average(aggregated_data.totalrecovered_sum,7)
+mov_avg_cnfrmd = moving_average(df.dailyconfirmed)
+mov_avg_deceased = moving_average(df.dailydeceased)
+mov_avg_recovd = moving_average(df.dailyrecovered)
 
 # Plots
-confirmed_cases_plot(aggregated_data,mov_avg_cnfrmd)
-deceased_cases_plot(aggregated_data,mov_avg_deceased)
-recovered_cases_plot(aggregated_data,mov_avg_recovd)
+plots_(df.dailyconfirmed,mov_avg_cnfrmd,"original values","smoothened values", "Plot for confirmed cases")
+plots_(df.dailydeceased,mov_avg_deceased,"original values","smoothened values", "Plot for deceased cases")
+plots_(df.dailyrecovered,mov_avg_recovd,"original values","smoothened values", "Plot for recovered cases")

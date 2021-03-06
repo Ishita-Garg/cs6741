@@ -1,7 +1,6 @@
 using HTTP
 using JSON
 using DataFrames
-using Dates
 
 # defining required functions
 
@@ -14,32 +13,25 @@ function create_df()
     return df
 end
 
-function get_year(var)
-    return [Dates.year(var[i]) for i in 1:length(var)]
-end
-function get_month(var)
-    return [Dates.month(var[i]) for i in 1:length(var)]
+function get_year_month(var)
+    return [(var[i][1:7]) for i in 1:length(var)]
 end
 
 df = create_df()       
 
-# changing datatype from string to int/date as suitable
-select!(df, Not([:date]))
-df.dateymd = Date.(df.dateymd, "yyyy-mm-dd")
+# changing datatype from string to int
 df.dailyconfirmed = [parse(Int, x) for x in df.dailyconfirmed]
 df.dailydeceased = [parse(Int, x) for x in df.dailydeceased]
 df.dailyrecovered = [parse(Int, x) for x in df.dailyrecovered]
-df.totalconfirmed = [parse(Int, x) for x in df.totalconfirmed]
-df.totaldeceased = [parse(Int, x) for x in df.totaldeceased]
-df.totalrecovered = [parse(Int, x) for x in df.totalrecovered]
-select!(df, :dateymd , :dailyconfirmed, :dailydeceased,  :dailyrecovered, :totalconfirmed, :totaldeceased , :totalrecovered)
+
+# selecting required columns
+select!(df, :dateymd , :dailyconfirmed, :dailydeceased,  :dailyrecovered)
 
 # getting year and month from dates
-df.year = get_year(df.dateymd)
-df.month = get_month(df.dateymd)
+select!(df, :dateymd => (x->get_year_month(x))=> :date_y_m, :dailyconfirmed, :dailydeceased,  :dailyrecovered)
 
 # grouping and caculating aggregate
-gdf = DataFrames.groupby(df, [:month,:year])
-aggregated_data = combine(gdf, :totalconfirmed => sum, :totaldeceased => sum, :totalrecovered => sum)
+gdf = DataFrames.groupby(df, :date_y_m)
+aggregated_data = combine(gdf, :dailyconfirmed => sum, :dailydeceased => sum, :dailyrecovered => sum)
 
 print(aggregated_data)
